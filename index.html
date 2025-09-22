@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Ética IA – Estilo Tarjeta</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --accent:#004d99;
+    --good:#2e7d32;
+    --warn:#f9a825;
+    --bad:#c62828;
+    --bg:#f2f5f7;
+    --card:#ffffff;
+    --radius:24px;
+    --shadow:0 12px 30px rgba(0,0,0,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  body{
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--bg);
+  }
+  #card{
+    width:90%;
+    max-width:420px;
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:2.2rem 2rem 2.8rem;
+    text-align:center;
+    position:relative;
+  }
+  h2{
+    font-size:1.4rem;
+    color:var(--accent);
+    margin-bottom:1.4rem;
+  }
+  h3{
+    font-size:1.2rem;
+    color: #333;
+    margin-bottom: 1.5rem;
+  }
+  #startScreen input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1.5rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1rem;
+  }
+  #startScreen button, .action-btn {
+    width: 100%;
+    padding: 1rem 1.2rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background .2s;
+    margin-top: 1rem; /* Margen para botones de acción */
+  }
+  #startScreen button:hover, .action-btn:hover {
+    background: #003a75;
+  }
+  .option{
+    display:block;
+    width:100%;
+    padding:1rem 1.2rem;
+    margin:.7rem 0;
+    border:2px solid #e0e0e0;
+    border-radius:12px;
+    font-size:1rem;
+    cursor:pointer;
+    transition:all .25s;
+    position:relative;
+    background:#fafafa;
+  }
+  .option:hover{border-color:var(--accent);}
+  .option.correct{border-color:var(--good);background:#e8f5e9;}
+  .option.medium{border-color:var(--warn);background:#fff8e1;}
+  .option.wrong{border-color:var(--bad);background:#ffebee;}
+  .feedback{
+    position:absolute;
+    right:1rem;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:1.6rem;
+    font-weight:bold;
+    opacity:0;
+    transition:opacity .3s;
+  }
+  .feedback.show{opacity:1;}
+  .good{color:var(--good);}
+  .medium{color:var(--warn);}
+  .wrong{color:var(--bad);}
+  #progress{
+    height:6px;
+    background:#e0e0e0;
+    border-radius:3px;
+    overflow:hidden;
+    margin-bottom:1.6rem;
+  }
+  #bar{
+    height:100%;
+    background:var(--accent);
+    width:0%;
+    transition:width .4s;
+  }
+  #resultScreen h3{font-size:1.5rem;margin-bottom:1rem;color:var(--accent);}
+  #resultScreen p{font-size:1.1rem;margin:.3rem 0;}
+  .hide{display:none;}
+</style>
+</head>
+<body>
+
+<div id="card">
+  <div id="progress" class="hide"><div id="bar"></div></div>
+
+  <!-- PANTALLA INICIO -->
+  <div id="startScreen">
+    <h3>Cuestionario sobre Ética e IA</h3>
+    <input type="text" id="studentNameInput" placeholder="Escribe tu nombre y apellido" required>
+    <button id="startButton">Comenzar Examen</button>
+  </div>
+
+  <!-- PANTALLA PREGUNTAS -->
+  <div id="quizScreen" class="hide">
+    <h2 id="questionText"></h2>
+    <div id="optionsBox"></div>
+  </div>
+
+  <!-- PANTALLA RESULTADOS -->
+  <div id="resultScreen" class="hide">
+    <h3>Resultados</h3>
+    <div id="breakdown"></div>
+    <p id="total"></p>
+    <button id="restartButton" class="action-btn">Reiniciar</button>
+  </div>
+</div>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script>
+(function(){
+  emailjs.init("1i6Ov9VDswYmX48jO");
+})();
+
+const qs=[
+  {
+    q:"¿Qué riesgo describe Cathy O’Neil como ‘armas de destrucción matemática’ cuando se usan IAs generativas de imágenes?",
+    opts:[
+      {text:"Replicar sesgos históricos y priorizar narrativas dominantes, reduciendo la diversidad cultural.",val:2},
+      {text:"Aumentar los costos de producción por el gran volumen de datos necesarios.",val:1},
+      {text:"Provocar fallos técnicos que corrompen los archivos de post-producción.",val:0}
+    ]
+  },
+  {
+    q:"Según el texto, ¿por qué hay demandas legales contra Stability AI o Midjourney?",
+    opts:[
+      {text:"Entrenan sus modelos con millones de obras sin consentimiento ni compensación a los artistas.",val:2},
+      {text:"Generan imágenes de baja calidad que engañan al consumidor.",val:1},
+      {text:"Promueven el uso exclusivo de software libre en las productoras.",val:0}
+    ]
+  },
+  {
+    q:"¿Qué postura adopta Christopher Nolan (frente a la de Spike Lee) sobre la IA en el cine?",
+    opts:[
+      {text:"La ve como una herramienta al servicio de la narrativa humana; Lee dice que ‘la IA no tiene alma’.",val:2},
+      {text:"Ambos coinciden en que la IA destruirá el acto colectivo de creatividad.",val:1},
+      {text:"Nolan rechaza su uso por ética; Lee promueve su adopción total.",val:0}
+    ]
+  },
+  {
+    q:"¿Qué logró el sindicato SAG-AFTRA tras las huelgas de Hollywood de 2023?",
+    opts:[
+      {text:"Regulaciones contra el uso no autorizado de réplicas digitales de actores.",val:2},
+      {text:"Prohibición total de cualquier software de IA en rodajes.",val:1},
+      {text:"Un aumento salarial del 50 % cuando se usan deepfakes.",val:0}
+    ]
+  },
+  {
+    q:"¿Cuál es una de las propuestas de solución para un uso ético de IA generativa de imágenes?",
+    opts:[
+      {text:"Transparencia: etiquetado claro en créditos, marcas de agua y metadatos.",val:2},
+      {text:"Eliminar por completo los modelos de código abierto.",val:1},
+      {text:"Dejar que el mercado regule automáticamente sin intervención.",val:0}
+    ]
+  }
+];
+
+let idx=0, puntos=[], total=0, studentName = "", firstAttempt = true;
+const questionText=document.getElementById('questionText');
+const optionsBox=document.getElementById('optionsBox');
+const bar=document.getElementById('bar');
+const progress=document.getElementById('progress');
+const quizScreen=document.getElementById('quizScreen');
+const resultScreen=document.getElementById('resultScreen');
+const breakdown=document.getElementById('breakdown');
+const totalTxt=document.getElementById('total');
+const startScreen=document.getElementById('startScreen');
+const studentNameInput=document.getElementById('studentNameInput');
+const startButton=document.getElementById('startButton');
+const restartButton=document.getElementById('restartButton');
+
+startButton.addEventListener('click', () => {
+  studentName = studentNameInput.value;
+  if (!studentName.trim()) {
+    alert("Por favor, ingresa tu nombre.");
+    return;
+  }
+  startScreen.classList.add('hide');
+  quizScreen.classList.remove('hide');
+  progress.classList.remove('hide');
+  renderQuestion();
+});
+
+restartButton.addEventListener('click', () => {
+  idx = 0;
+  puntos = [];
+  total = 0;
+  resultScreen.classList.add('hide');
+  startScreen.classList.remove('hide');
+  progress.classList.add('hide');
+  bar.style.width = '0%';
+  studentNameInput.value = '';
+});
+
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+
+function renderQuestion(){
+  const qu=qs[idx];
+  questionText.textContent=`${idx+1}. ${qu.q}`;
+  optionsBox.innerHTML='';
+  bar.style.width=`${(idx)/qs.length*100}%`;
+  shuffle(qu.opts).forEach(op=> {
+    const btn=document.createElement('button');
+    btn.className='option';
+    btn.textContent=op.text;
+    btn.dataset.val=op.val;
+    btn.addEventListener('click',handleAnswer);
+    optionsBox.appendChild(btn);
+  });
+}
+
+function proceed() {
+  if(idx<qs.length) renderQuestion();
+  else showResults();
+}
+
+function handleAnswer(e){
+  const btn=e.currentTarget;
+  const val=+btn.dataset.val;
+  const allBtns=[...optionsBox.children];
+  let correctBtn=allBtns.find(b=>+b.dataset.val===2);
+
+  allBtns.forEach(b=>b.disabled=true);
+  
+  let isCorrect = false;
+  if(val===2){
+    isCorrect = true;
+    btn.classList.add('correct');
+    addFeedback(btn,'✓','good');
+  }else if(val===1){
+    btn.classList.add('medium');
+    addFeedback(btn,'−','medium');
+  }else{
+    btn.classList.add('wrong');
+    addFeedback(btn,'✗','wrong');
+  }
+  
+  if(!isCorrect){
+    correctBtn.classList.add('correct');
+    addFeedback(correctBtn,'✓','good');
+  }
+
+  puntos[idx]=val;
+  idx++;
+
+  if (isCorrect) {
+    setTimeout(proceed, 2000); // Avance automático si es correcto
+  } else {
+    // Avance manual si es incorrecto o regular
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Siguiente';
+    nextBtn.className = 'action-btn';
+    nextBtn.addEventListener('click', proceed);
+    optionsBox.appendChild(nextBtn);
+  }
+}
+
+function addFeedback(el,symbol,cl){
+  const span=document.createElement('span');
+  span.className=`feedback ${cl}`;
+  span.textContent=symbol;
+  el.appendChild(span);
+  setTimeout(()=>span.classList.add('show'),50);
+}
+
+function showResults(){
+  bar.style.width='100%';
+  quizScreen.classList.add('hide');
+  resultScreen.classList.remove('hide');
+  let html='';
+  let total=0;
+  qs.forEach((q,i)=> {
+    const p=puntos[i];
+    const pointsText = p===2?'✓ 2 pts':p===1?'− 1 pt':'✗ 0 pts';
+    html+=`<p>Pregunta ${i+1}: ${pointsText}</p>`;
+    total+=p;
+  });
+  breakdown.innerHTML=html;
+  totalTxt.textContent=`Total: ${total}/10 puntos`;
+
+  if (firstAttempt) {
+    // --- ENVÍO DE EMAIL ---
+    const nameParts = studentName.split(' ');
+    const nombre = nameParts[0];
+    const apellido = nameParts.slice(1).join(' ');
+    const now = new Date();
+    const time = now.toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' });
+
+    const templateParams = {
+      nombre: nombre,
+      apellido: apellido,
+      time: time,
+      nota: `${total}/10`,
+      results_breakdown: html,
+      title: `${nombre} ${apellido} - Nota: ${total}`
+    };
+
+    console.log("Enviando estos parámetros a EmailJS:", templateParams);
+
+    emailjs.send('service_j5yq3we', 'template_z3m3sxd', templateParams)
+      .then(function(response) {
+         console.log('SUCCESS!', response.status, response.text);
+         totalTxt.textContent += " (Resultados enviados)";
+      }, function(error) {
+         console.log('FAILED...', error);
+         totalTxt.textContent += " (Error al enviar resultados)";
+      });
+    
+    firstAttempt = false; // Marcar que el primer intento ya se hizo
+  }
+}
+</script>
+</body>
+</html>
